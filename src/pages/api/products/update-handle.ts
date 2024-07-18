@@ -1,10 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
 import { GraphQLClient } from "graphql-request";
-import {
-  getProductsCountQuery,
-  getProductsQuery,
-} from "@/services/graphql/query";
+import { getProductsQuery } from "@/services/graphql/query";
 import { updateProductMutation } from "@/services/graphql/mutation";
 
 type Data = {
