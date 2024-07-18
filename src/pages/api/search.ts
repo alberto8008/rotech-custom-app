@@ -100,23 +100,9 @@ export default async function handler(
     }
 
     let response = `
-    <div id="shopify-section-predictive-search" class="shopify-section shopify-section--predictive-search">
-        <tabs-nav class="tabs-nav tabs-nav--edge2edge tabs-nav--narrow tabs-nav--no-border">
-            <scrollable-content class="tabs-nav__scroller hide-scrollbar">
-                <div class="tabs-nav__scroller-inner">
-                    <div class="tabs-nav__item-list">
-                        <button type="button" class="tabs-nav__item heading heading--small" aria-expanded="true" aria-controls="predictive-search-products">Products</button>
-                        <button type="button" class="tabs-nav__item heading heading--small" aria-expanded="false" aria-controls="predictive-search-queries">Suggestions</button>
-                        <button type="button" class="tabs-nav__item heading heading--small" aria-expanded="false" aria-controls="predictive-search-pages">Pages</button>
-                        <button type="button" class="tabs-nav__item heading heading--small" aria-expanded="false" aria-controls="predictive-search-collections">Collections</button>
-                    </div>
-                </div>
-            </scrollable-content>
-        </tabs-nav>
-        <div class="predictive-search__results-categories">
-            <div class="predictive-search__results-categories-item" id="predictive-search-products">
-                <input type="hidden" form="predictive-search-form" name="type" value="product">
-                <ul class="predictive-search__product-list list--unstyled" role="list" data-type="products">`;
+      <div class="predictive-search__results-categories-item" id="predictive-search-products">
+          <input type="hidden" form="predictive-search-form" name="type" value="product">
+          <ul class="predictive-search__product-list list--unstyled" role="list" data-type="products">`;
 
     products.forEach((product: ProductType) => {
       response += `
