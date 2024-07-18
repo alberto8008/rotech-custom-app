@@ -1,10 +1,7 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from "next";
 import { GraphQLClient } from "graphql-request";
-import {
-  getProductSearchQuery,
-  getProductsCountQuery,
-} from "@/services/graphql/query";
+import { getProductSearchQuery } from "@/services/graphql/query";
 
 const RotechClient = new GraphQLClient(process.env.GRAPHQL_ENDPOINT as string, {
   headers: {
@@ -14,16 +11,47 @@ const RotechClient = new GraphQLClient(process.env.GRAPHQL_ENDPOINT as string, {
 });
 
 type ProductType = {
-  handle: String;
-  title: String;
+  handle: string;
+  title: string;
   image: {
-    alt: String;
-    width: Number;
-    height: Number;
-    url: String;
+    alt: string;
+    width: number;
+    height: number;
+    url: string;
   };
-  price: Number;
-  comparePrice: Number;
+  price: number;
+  comparePrice: number;
+};
+
+type GetProductsQueryResponse = {
+  products: {
+    nodes: Array<{
+      handle: string;
+      productTitle: {
+        value: string;
+      };
+      featuredImage: {
+        altText: string;
+        width: number;
+        height: number;
+        url: string;
+      };
+      priceRangeV2: {
+        maxVariantPrice: {
+          amount: number;
+        };
+      };
+      compareAtPriceRange: {
+        maxVariantCompareAtPrice: {
+          amount: number;
+        };
+      };
+    }>;
+    pageInfo: {
+      hasNextPage: boolean;
+      endCursor: string;
+    };
+  };
 };
 
 export default async function handler(
@@ -32,43 +60,43 @@ export default async function handler(
 ) {
   try {
     const searchTerm: string = req.query.searchTerm as string;
-    let products: any = [],
-      productsQueryPageResponse: any,
-      cursor = null;
+    let products: ProductType[] = [];
+    let cursor: string | null = null;
 
     while (true) {
-      productsQueryPageResponse = await RotechClient.request(
-        getProductSearchQuery,
-        {
+      const productsQueryPageResponse: GetProductsQueryResponse =
+        await RotechClient.request(getProductSearchQuery, {
           numProducts: 250,
           cursor: cursor,
-        }
-      );
-      productsQueryPageResponse.products.nodes.forEach((product: any) => {
+        });
+
+      productsQueryPageResponse.products.nodes.forEach((product) => {
         if (
-          product.productTitle &&
           product.productTitle?.value
             .toLowerCase()
-            .indexOf(searchTerm.toLowerCase()) > -1
-        )
+            .includes(searchTerm.toLowerCase())
+        ) {
           products.push({
             handle: product.handle,
             title: product.productTitle.value,
             image: {
-              alt: product.featuredImage?.altText,
-              width: product.featuredImage?.width,
-              height: product.featuredImage?.height,
-              url: product.featuredImage?.url,
+              alt: product.featuredImage?.altText || "",
+              width: product.featuredImage?.width || 0,
+              height: product.featuredImage?.height || 0,
+              url: product.featuredImage?.url || "",
             },
-            price: product.priceRangeV2?.maxVariantPrice.amount,
+            price: product.priceRangeV2?.maxVariantPrice.amount || 0,
             comparePrice:
-              product.compareAtPriceRange?.maxVariantCompareAtPrice.amount,
+              product.compareAtPriceRange?.maxVariantCompareAtPrice.amount || 0,
           });
+        }
       });
 
-      if (productsQueryPageResponse.products.pageInfo.hasNextPage)
+      if (productsQueryPageResponse.products.pageInfo.hasNextPage) {
         cursor = productsQueryPageResponse.products.pageInfo.endCursor;
-      else break;
+      } else {
+        break;
+      }
     }
 
     let response = `
@@ -103,16 +131,15 @@ export default async function handler(
                     <img class="line-item__image" ${
                       product.image.alt ? `alt="${product.image.alt}"` : ""
                     } ${
-                        product.image.width
+                        !!product.image.width
                           ? `width="${product.image.width}"`
                           : ""
                       } ${
-                        product.image.height
+                        !!product.image.height
                           ? `height="${product.image.height}"`
                           : ""
                       } src="${product.image.url}">
-                </span>
-                `
+                </span>`
                     : ""
                 }
                 <div class="line-item__info">
@@ -123,17 +150,13 @@ export default async function handler(
                         <div class="product-item-meta__price-list-container text--small">
                             <div class="price-list">
                                 ${
-                                  product.price
-                                    ? `
-                                <span class="price price--highlight">$${product.price}</span>
-                                `
+                                  !!product.price
+                                    ? `<span class="price price--highlight">$${product.price}</span>`
                                     : ""
                                 }
                                 ${
-                                  product.comparePrice
-                                    ? `
-                                  <span class="price price--compare">$${product.comparePrice}</span>
-                                  `
+                                  !!product.comparePrice
+                                    ? `<span class="price price--compare">$${product.comparePrice}</span>`
                                     : ""
                                 }
                             </div>
@@ -144,8 +167,7 @@ export default async function handler(
                     <path d="M0 7h15M9 1l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none"></path>
                 </svg>
             </a>
-        </li>
-        `;
+        </li>`;
     });
 
     response += `
@@ -155,6 +177,7 @@ export default async function handler(
 
     return res.status(200).send(response);
   } catch (err) {
-    res.status(500);
+    console.error("Error processing request:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
