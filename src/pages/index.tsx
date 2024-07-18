@@ -11,9 +11,9 @@ const theme = createTheme({
   },
 });
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps = async () => {
   try {
-    const counts = await getProductsCount();
+    const counts: number | undefined = await getProductsCount();
     return { props: { counts: counts ?? 0 } };
   } catch (error) {
     console.error("Error fetching product counts:", error);

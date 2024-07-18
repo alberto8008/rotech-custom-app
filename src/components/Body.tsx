@@ -9,9 +9,9 @@ export const Body = ({ productCounts }: { productCounts: number }) => {
 
   const handleRename = async () => {
     setLoading(true);
-    const renamedCounts = await handleProductsRename();
+    const renamedCounts: number | undefined = await handleProductsRename();
     setLoading(false);
-    setRenamedCounts(renamedCounts);
+    setRenamedCounts(renamedCounts ?? 0);
   };
 
   return (

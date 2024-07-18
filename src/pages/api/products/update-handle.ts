@@ -8,6 +8,23 @@ type Data = {
   renamed_counts: number;
 };
 
+type Product = {
+  id: string;
+  productTitle: {
+    value: string;
+  };
+};
+
+type GetProductsQueryResponse = {
+  products: {
+    nodes: Product[];
+    pageInfo: {
+      hasNextPage: boolean;
+      endCursor: string;
+    };
+  };
+};
+
 const RotechClient = new GraphQLClient(process.env.GRAPHQL_ENDPOINT as string, {
   headers: {
     "X-Shopify-Access-Token": process.env.ACCESS_TOKEN as string,
@@ -17,30 +34,35 @@ const RotechClient = new GraphQLClient(process.env.GRAPHQL_ENDPOINT as string, {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Data>
+  res: NextApiResponse<Data | { error: string }>
 ) {
   try {
-    let products: any = [],
-      productsQueryPageResponse: any,
-      cursor = null,
-      changedCounts = 0;
+    let products: { id: string; newTitle: { value: string } }[] = [];
+    let cursor: string | null = null;
+    let changedCounts = 0;
 
     while (true) {
-      productsQueryPageResponse = await RotechClient.request(getProductsQuery, {
-        numProducts: 250,
-        cursor: cursor,
-      });
-      productsQueryPageResponse.products.nodes.forEach((product: any) => {
-        if (product.productTitle)
+      const productsQueryPageResponse: GetProductsQueryResponse =
+        await RotechClient.request(getProductsQuery, {
+          numProducts: 250,
+          cursor: cursor,
+        });
+
+      productsQueryPageResponse.products.nodes.forEach((product) => {
+        if (product.productTitle) {
           products.push({ id: product.id, newTitle: product.productTitle });
+        }
       });
-      if (productsQueryPageResponse.products.pageInfo.hasNextPage)
+
+      if (productsQueryPageResponse.products.pageInfo.hasNextPage) {
         cursor = productsQueryPageResponse.products.pageInfo.endCursor;
-      else break;
+      } else {
+        break;
+      }
     }
 
     await Promise.all(
-      products.map(async (product: any) => {
+      products.map(async (product) => {
         try {
           await RotechClient.request(updateProductMutation, {
             input: {
@@ -49,17 +71,15 @@ export default async function handler(
             },
           });
           changedCounts++;
-          return true;
         } catch (error) {
-          console.error(error);
+          console.error(`Error updating product with ID ${product.id}:`, error);
         }
       })
     );
 
-    return res.status(200).json({
-      renamed_counts: changedCounts,
-    });
+    return res.status(200).json({ renamed_counts: changedCounts });
   } catch (err) {
-    res.status(500);
+    console.error("Error processing request:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
