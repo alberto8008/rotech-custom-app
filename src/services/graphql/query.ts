@@ -24,3 +24,37 @@ export const getProductsQuery = gql`
     }
   }
 `;
+
+export const getProductSearchQuery = gql`
+  query ($numProducts: Int!, $cursor: String) {
+    products(first: $numProducts, after: $cursor) {
+      nodes {
+        handle
+        productTitle: metafield(namespace: "custom", key: "product_title") {
+          value
+        }
+        featuredImage {
+          altText
+          width
+          height
+          url
+        }
+        priceRangeV2 {
+          maxVariantPrice {
+            amount
+            currencyCode
+          }
+        }
+        compareAtPriceRange {
+          maxVariantCompareAtPrice {
+            amount
+          }
+        }
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+    }
+  }
+`;
